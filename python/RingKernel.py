@@ -47,7 +47,7 @@ class kernel(object):
     dd = pixel_width*N/2.
     krn_scrn = rg.Screen(domain=[[-dd,dd],[-dd,dd]],N=N)
 
-    return self.eval(zip(*[x.flatten() for x in krn_scrn.centers()])).reshape(N,N)
+    return self.eval(list(zip(*[x.flatten() for x in krn_scrn.centers()]))).reshape(N,N)
 
 
 
@@ -76,23 +76,23 @@ class KernelConvolver(object):
 
 
     # parse kwargs
-    for k,v in kwargs.iteritems():
+    for k,v in kwargs.items():
       if k == 'kernel':
-      	self.kernel_ = v
+        self.kernel_ = v
       elif k == 'max_filter':
-	self.do_maxFilter_ = bool(v)
+        self.do_maxFilter_ = bool(v)
       elif k == 'screen':
-	self.screen_ = v
+        self.screen_ = v
       elif k == 'krn_im':
-	self.krn_im_ = v
+        self.krn_im_ = v
       elif k == 'krn_N':
-	self.krn_N_ = int(v)
+        self.krn_N_ = int(v)
       elif k == 'krn_pixel_width':
-	self.krn_pixel_width_ = float(v)
+        self.krn_pixel_width_ = float(v)
       elif k == 'screen_pixels':
-	self.pixels_ = int(v)
+        self.pixels_ = int(v)
       elif k == 'domain':
-	self.domain_ = v
+        self.domain_ = v
 
     if self.kernel_ is None:
       self.kernel_ = kernel(self.R_,self.s_)

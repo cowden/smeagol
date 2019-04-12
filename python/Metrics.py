@@ -51,11 +51,11 @@ class metric_accumulator(object):
 
       if len(preds) > 0:
         for j in range(len(labels)):
-	  lab = labels[j]
-	  dists = np.array([np.linalg.norm(np.array(lab[:1])-np.array(p[:1])) for p in preds])
-	  ind = np.argmin(dists)
-	  if dists[ind] < self.near_ and np.abs(preds[ind][2]-lab[2]) <= self.band_:
-	    dmap[j] = ind
+          lab = labels[j]
+          dists = np.array([np.linalg.norm(np.array(lab[:1])-np.array(p[:1])) for p in preds])
+          ind = np.argmin(dists)
+          if dists[ind] < self.near_ and np.abs(preds[ind][2]-lab[2]) <= self.band_:
+            dmap[j] = ind
 
 
         self.tp_ += len(dmap[dmap > -1])
@@ -63,9 +63,9 @@ class metric_accumulator(object):
         self.fn_ += len(dmap[dmap == -1])      
     
       else:
-	self.fp_ += 0
-	self.tp_ += 0
-	self.fn_ += len(labels)
+        self.fp_ += 0
+        self.tp_ += 0
+        self.fn_ += len(labels)
 
 
       # count the number of matches

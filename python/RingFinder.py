@@ -42,7 +42,7 @@ class RingFinder(object):
     elif hasattr(thresholds,'__iter__'):
       self._thresholds = thresholds
       if len(thresholds) != Nr:
-	raise ValueError('Number of thresholds does not match the number of kernels.')
+        raise ValueError('Number of thresholds does not match the number of kernels.')
 
     else:
       raise TypeError('Don\'t know how to deal with type of thresholds %s' % (str(type(thresholds))))

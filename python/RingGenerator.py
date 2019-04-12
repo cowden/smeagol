@@ -12,7 +12,7 @@ import pickle as pkl
 import sys
 
 
-from progress import ProgressBar
+#from progress import ProgressBar
 
 class Screen(object):
   '''Discritization of the imaging layer, e.g. where the light hits.'''
@@ -82,7 +82,7 @@ class Screen(object):
     '''Transform the points to indices into the data.'''
 
     tp = self.transform(points)
-    return np.array(zip(np.digitize(tp[:,0],self.bins_),np.digitize(tp[:,1],self.bins_))) - 1
+    return np.array(list(zip(np.digitize(tp[:,0],self.bins_),np.digitize(tp[:,1],self.bins_)))) - 1
 
 
 
@@ -136,10 +136,10 @@ class NoiseGenerator(object):
     x = np.random.random_sample(n)*w+domain[0][0]
     y = np.random.random_sample(n)*h+domain[1][0]
     points = np.array(
-      zip(
-	x
-	,y
-      )
+      list(zip(
+        x
+        ,y
+      ))
     )
 
     return points[(points[:,0]>domain[0][0]) 
@@ -224,13 +224,13 @@ class SingleRingGenerator(RingGenerator):
     self.pixels_ = 500
     self.noise_ = 10000
 
-    for k,v in kwargs.iteritems():
+    for k,v in kwargs.items():
       if k == 'domain':
-	self.domain_ = v
+        self.domain_ = v
       elif k == 'pixels':
-	self.pixels_ = int(v)
+        self.pixels_ = int(v)
       elif k == 'noise':
-	self.noise_ = v
+        self.noise_ = v
 
     # data is an empty list.
     # it will be populated with flattened images
@@ -255,8 +255,8 @@ class SingleRingGenerator(RingGenerator):
 
       # generate the position (x,y)
       pos = (
-	w*np.random.random_sample() + self.domain_[0][0] 
-	,h*np.random.random_sample() + self.domain_[1][0]
+        w*np.random.random_sample() + self.domain_[0][0] 
+        ,h*np.random.random_sample() + self.domain_[1][0]
       )
 
       # generate the ring
@@ -265,15 +265,15 @@ class SingleRingGenerator(RingGenerator):
 
       # clean points
       points = points[(points[:,0]>self.domain_[0][0])
-	& (points[:,0]<self.domain_[0][1])
-	& (points[:,1]>self.domain_[1][0])
-	& (points[:,1]<self.domain_[1][1])
+        & (points[:,0]<self.domain_[0][1])
+        & (points[:,1]>self.domain_[1][0])
+        & (points[:,1]<self.domain_[1][1])
       ]
 
       # generate noise
       if self.noise_ is not None:
-	npoints = NoiseGenerator().generateNoise(self.noise_,self.domain_)
-	points = np.array(list(points) + list(npoints))
+        npoints = NoiseGenerator().generateNoise(self.noise_,self.domain_)
+        points = np.array(list(points) + list(npoints))
 
       # discretize the image
       screen = self.imageRing(points,screen)
@@ -313,7 +313,7 @@ class MultiRingGenerator(RingGenerator):
       noise - noise level in image.
       pixels - number of pixels on one side of image (assume square)
       dist - Distribution from which to draw ring centers
-	'uniform' or 'Guassian'
+        'uniform' or 'Guassian'
       pos - center of Gaussian 
       sig - symetric width of Guassian 
     '''
@@ -332,22 +332,22 @@ class MultiRingGenerator(RingGenerator):
 
     self.possible_dists_ = set(['gaussian','uniform'])
 
-    for k,v in kwargs.iteritems():
+    for k,v in kwargs.items():
       if k == 'domain':
-	self.domain_ = v
+        self.domain_ = v
       elif k == 'pixels':
-	self.pixels_ = int(v)
+        self.pixels_ = int(v)
       elif k == 'noise':
-	self.noise_ = v
+        self.noise_ = v
       elif k == 'dist':
-	val = str(v).lower()
-	if val not in self.possible_dists_:
-	  raise ValueError('Not a valid choice of distribution.')
-	self.dist_ = val
+        val = str(v).lower()
+        if val not in self.possible_dists_:
+          raise ValueError('Not a valid choice of distribution.')
+        self.dist_ = val
       elif k == 'pos':
-	self.pos_ = tuple(v)
+        self.pos_ = tuple(v)
       elif k == 'sig':
-	self.sig_ = float(v)
+        self.sig_ = float(v)
 
     # data is an empty list.
     # it will be populated with flattened images
@@ -384,7 +384,7 @@ class MultiRingGenerator(RingGenerator):
     '''Simulate nEvents by parameters already established.'''
 
     sys.stdout.write('Beginning event generation of %d events.\n' % nEvents)
-    pb = ProgressBar(nEvents)
+    #pb = ProgressBar(nEvents)
     
 
     if self.dist_ == 'gaussian':
@@ -399,27 +399,27 @@ class MultiRingGenerator(RingGenerator):
       screen = Screen(self.domain_,self.pixels_)
 
       for r in range(len(self.labels_[i])):
-	points = self.generateRing(self.R_,self.labels_[i][r],self.N_)
+        points = self.generateRing(self.R_,self.labels_[i][r],self.N_)
      
-	points = points[(points[:,0]>self.domain_[0][0])
-	  & (points[:,0]<self.domain_[0][1])
-	  & (points[:,1]>self.domain_[1][0])
-	  & (points[:,1]<self.domain_[1][1])
-	] 
+        points = points[(points[:,0]>self.domain_[0][0])
+          & (points[:,0]<self.domain_[0][1])
+          & (points[:,1]>self.domain_[1][0])
+          & (points[:,1]<self.domain_[1][1])
+        ] 
         
-	screen.discretize(points) 
+        screen.discretize(points) 
 
       # generate noise
       if self.noise_ is not None:
-	npoints = NoiseGenerator().generateNoise(self.noise_,self.domain_)
-	screen.discretize(npoints)
+        npoints = NoiseGenerator().generateNoise(self.noise_,self.domain_)
+        screen.discretize(npoints)
 
       # store image
       self.data_.append(screen.data_.flatten())
 
-      pb.update(1)
+      #pb.update(1)
 
-    pb.complete()
+    #pb.complete()
 
 
   def dumpData(self,outfile):
@@ -466,19 +466,19 @@ class MultiVariedRingGenerator(RingGenerator):
 
     self.r_range_ = (0.25,0.75)
    
-    for k,v in kwargs.iteritems():
+    for k,v in kwargs.items():
       if k == 'domain':
-	self.domain_ = v
+        self.domain_ = v
       elif k == 'pixels':
-	self.pixels_ = int(v)
+        self.pixels_ = int(v)
       elif k == 'noise':
-	self.noise_ = v
+        self.noise_ = v
       elif k == 'pos':
-	self.pos_ = tuple(v)
+        self.pos_ = tuple(v)
       elif k == 'sig':
-	self.sig_ = float(v)
+        self.sig_ = float(v)
       elif k == 'r_range':
-	self.r_range_ = tuple(v)
+        self.r_range_ = tuple(v)
 
     # data is an empty list.
     # it will be populated with flattened images
@@ -495,7 +495,7 @@ class MultiVariedRingGenerator(RingGenerator):
     # return a set of labels for the event
     # Each label has the following definition
     #  position (x,y), radius
-    return zip(self.ring_centers(n_rings),self.ring_sizes(n_rings))
+    return list(zip(self.ring_centers(n_rings),self.ring_sizes(n_rings)))
 
   def ring_centers(self,n_rings):
     '''Generate a set of gaussian ring centers.'''
@@ -511,7 +511,7 @@ class MultiVariedRingGenerator(RingGenerator):
     '''Simulate nEvents by parameters already established.'''
 
     sys.stdout.write('Beginning event generation of %d events.\n' % nEvents)
-    pb = ProgressBar(nEvents)
+    #pb = ProgressBar(nEvents)
 
     self.labels_ = [self.gen_n_rings() for i in range(nEvents)]
 
@@ -521,31 +521,31 @@ class MultiVariedRingGenerator(RingGenerator):
       screen = Screen(self.domain_,self.pixels_)
 
       for r in range(len(self.labels_[i])):
-	points = self.generateRing(self.labels_[i][r][1],self.labels_[i][r][0],self.N_)
+        points = self.generateRing(self.labels_[i][r][1],self.labels_[i][r][0],self.N_)
 
-	
-	points = points[(points[:,0]>self.domain_[0][0])
-	  & (points[:,0]<self.domain_[0][1])
-	  & (points[:,1]>self.domain_[1][0])
-	  & (points[:,1]<self.domain_[1][1])
-	] 
         
-	screen.discretize(points) 
+        points = points[(points[:,0]>self.domain_[0][0])
+          & (points[:,0]<self.domain_[0][1])
+          & (points[:,1]>self.domain_[1][0])
+          & (points[:,1]<self.domain_[1][1])
+        ] 
+        
+        screen.discretize(points) 
 
       # generate noise
       if self.noise_ is not None:
-	npoints = NoiseGenerator().generateNoise(self.noise_,self.domain_)
-	screen.discretize(npoints)
+        npoints = NoiseGenerator().generateNoise(self.noise_,self.domain_)
+        screen.discretize(npoints)
 
       # store image
       self.data_.append(screen.data_.flatten())
 
-      pb.update(1)
+      #pb.update(1)
 
-    pb.complete()
+    #pb.complete()
 
 
-	
+        
   def dumpData(self,outfile):
     '''Store the data in a pickle file.'''
 

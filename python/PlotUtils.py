@@ -56,14 +56,14 @@ def gridPlot(data,**kwargs):
     for j in range(array[1]):
       ind = i*array[0]+j
       indx = index[ind]
-      print 'index:',i,j,ind
+      print('index:',i,j,ind)
       ax = plt.subplot(array[0],array[1],ind+1)
       ax.imshow(data[indx].reshape((dim[0],dim[1])),interpolation='none',extent=[0.,dim[0],0.,dim[1]],origin='lower')
 
       if labels is not None:
       	pos = screen.transform_index(np.array([labels[indx][1:]]))
       	ax.scatter(pos[:,1],pos[:,0])
-      	print pos[0],np.unravel_index(np.argmax(data[indx]),(dim[0],dim[1])),np.linalg.norm(np.array(pos[0])-np.unravel_index(np.argmax(data[indx]),(dim[0],dim[1])))
+      	print(pos[0],np.unravel_index(np.argmax(data[indx]),(dim[0],dim[1])),np.linalg.norm(np.array(pos[0])-np.unravel_index(np.argmax(data[indx]),(dim[0],dim[1]))))
 
       ax.set_xticklabels([])
       ax.set_yticklabels([])
