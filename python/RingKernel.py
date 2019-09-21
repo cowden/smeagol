@@ -32,6 +32,21 @@ class kernel(object):
 
     return self.norm_*np.exp(-(np.sqrt(np.array(points)[:,0]**2+np.array(points)[:,1]**2)-self.R_)**2/(2.*self.sigma_**2))
 
+  def cov(self,points):
+    '''Evaluate the covariance of R and theta from the specified points, weighted by the kernel itself.'''
+
+    # get the weights
+    w = self.eval(points)
+
+    # transform the points
+    polar = np.zeros(points.shape)
+    polar[:,0] = np.sqrt(points[:,0]**2+points[:,1]**2)
+    polar[:,1] = np.arctan2(points[:,1],points[:,0])
+
+    # return the covariance
+    return np.cov(polar.T,aweights=w)
+
+
   def peval(self,x,y):
     '''Evaluate the function at a single point.'''
 
@@ -49,6 +64,27 @@ class kernel(object):
 
     return self.eval(list(zip(*[x.flatten() for x in krn_scrn.centers()]))).reshape(N,N)
 
+
+  def cov_digitize(self,N,pixel_width):
+    dd = pixel_width*N/2.
+    krn_scrn = rg.Screen(domain=[[-dd,dd],[-dd,dd]],N=N)
+
+    x = np.array(list(zip(*[x.flatten() for x in krn_scrn.centers()])))
+    w = self.eval(x)
+    t = np.arctan2(x[:,1],x[:,0])
+    
+    return ((t*w)**2).reshape(N,N)
+
+  def mean_digitize(self,N,pixel_width):
+    
+    dd = pixel_width*N/2.
+    krn_scrn = rg.Screen(domain=[[-dd,dd],[-dd,dd]],N=N)
+
+    x = np.array(list(zip(*[x.flatten() for x in krn_scrn.centers()])))
+    w = self.eval(x)
+    t = np.arctan2(x[:,1],x[:,0])
+    
+    return ((t*w)).reshape(N,N)
 
 
 #
@@ -109,6 +145,15 @@ class KernelConvolver(object):
   def convolve(self,image):
     '''Perform the convolution.'''
     return sig.fftconvolve(image,self.krn_im_,mode='same')
+
+  def convolution_variance(self,image):
+    '''Compute the variance of data in the kernel window.'''
+
+    # transform the x-space
+
+    # compute convolutions
+
+    # compute variance
 
   def max_filter(self,image):
     '''Perform the maximum filter.'''

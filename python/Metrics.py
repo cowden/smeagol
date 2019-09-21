@@ -6,7 +6,136 @@
 
 import numpy as np
 
+from scipy.spatial.distance import cdist
 
+
+def prepare_predictions(predicted_labels):
+  '''
+    Transform the labels returned by RingFinder.eval for use in metrics.
+  '''
+
+  return [[[p[0],p[1],r[0]] for r in e for p in r[1]] for e in predicted_labels]
+
+
+def prepare_actuals(actual_labels,screen):
+  '''
+    Transform the MultiVariedRingGenerator labels for use in metrics.
+    Parameters
+    ---------
+    actual_labels - labels returned by the MultiVariedRingGenerator
+    screen - a screen object to transform coordinates.
+  '''
+
+  labels = []
+
+  for e in actual_labels:
+    p = screen.transform_index(np.array([d[0] for d in e]))
+    labels.append([[p[i][0],p[i][1],e[i][1]] for i in range(len(e))])
+
+  return labels
+
+
+def match_prediction(y_true,y_hat):
+
+  N = len(y_true)
+
+  near_ = 2
+  band_ = 0.1
+
+  true_positives = []
+  false_positives = []
+
+  # cycle over images
+  for i in range(N):
+    p = np.array(y_hat[i])
+    a = np.array(y_true[i])
+
+    sdists = cdist(p[:,:2],a[:,:2])
+    rdists = cdist(p[:,-1:],a[:,-1:],metric='cityblock')
+
+    res = np.where((sdists < near_) & (rdists < band_))
+
+    tpi,tpii = np.unique(res[1],return_index=True)
+
+    true_pos =a[tpi,:]
+    fpi = [j for j in np.arange(p.shape[0]) if j not in res[0] or j not in tpii]
+    false_pos = p[fpi,:]
+
+    true_positives.append(true_pos)
+    false_positives.append(false_pos)
+
+  return true_positives,false_positives
+     
+
+def binary_score(y_true,y_hat):
+  '''
+    Return a binary (1/0 for true/false positive) for each y_hat,
+    and another binary (1/0 for found/not found) for each y_true to indicate false_negatives.
+    Parameters
+    ---------
+    y_true - list of list of actual ring labels (e.g. output of prepare_actuals)
+    y_hat - list of list of predicted ring labels (e.g. output of prepare predictions)
+   
+    Returns
+    -------
+    binary positive indicator
+    binary negative indicator
+  '''
+
+  near_ = 2.
+  band_ = 0.1
+
+  tp_ = 0
+  fp_ = 0
+  fn_ = 0
+  pcount_ = 0
+
+  def dmetric(x,y,near_ = 2,band_ = 0.1):
+    return np.array([np.linalg.norm(x[:1]-y[:1]),np.abs(x[2]-y[2])])
+
+  N = len(y_true)
+
+  true_positives_ = []
+  false_positives_ = []
+  false_negatives_ = []
+
+  # loop over all events
+  for i in range(N):
+    # get the labels for this event
+    labels = np.array(y_true[i])
+    preds = np.array(y_hat[i])
+
+    # find the nearest prediction to each label
+    #dists =   
+    # map of labels to predictions array
+    dmap = -1.*np.ones(len(labels))
+
+    if len(preds) > 0:
+      for j in range(len(labels)):
+        lab = labels[j]
+        dists = np.array([np.linalg.norm(np.array(lab[:1])-np.array(p[:1])) for p in preds])
+        ind = np.argmin(dists)
+        if dists[ind] < near_ and np.abs(preds[ind][2]-lab[2]) <= band_:
+          dmap[j] = ind
+
+
+      tp_ += len(dmap[dmap > -1])
+      fp_ += len(set(list(range(len(preds)))).difference(set(list(dmap[dmap>-1]))))
+      fn_ += len(dmap[dmap == -1])      
+    
+    else:
+      fp_ += 0
+      tp_ += 0
+      fn_ += len(labels)
+
+
+    # count the number of matches
+    pcount_ += len(labels)
+  
+  assert tp_ + fn_  == pcount_
+   
+  return dmap 
+  
 
 class metric_accumulator(object):
   '''Accumulate true/false positive/negative counts.'''
@@ -188,3 +317,6 @@ class Mathews(object):
 
   def getMathews(self):
     return (self.tp_*self.tn_ - self.fp_*self.fn_)/np.sqrt((self.tp_+self.fp_)*(self.tp_+self.fn_)*(self.tn_+self.fp_)*(self.tn_+self.fn_))
+
+
+
