@@ -24,6 +24,7 @@ class Screen(object):
     self.width_ = self.domain_[0,1] - self.domain_[0,0]
     self.height_ = self.domain_[1,1] - self.domain_[1,0]
     self.N_ = N
+    self._pixel_width = self.width_/self.N_
 
     # internal data
     self.data_ = np.zeros((N,N))
