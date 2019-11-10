@@ -15,6 +15,7 @@ import pandas as pd
 
 from scipy.sparse import lil_matrix
 from scipy.ndimage.filters import maximum_filter
+import scipy.signal as sig
 
 from sklearn.linear_model import LogisticRegression
 
@@ -61,7 +62,7 @@ class RingFinder(object):
     indx = np.random.choice(n)
 
     # choose a window
-    pos = np.random.random_integers(0,data.shape[1],size=2)
+    pos = np.random.random_integers(0,data.shape[1]-1,size=2)
 
     return indx,pos
 
@@ -169,6 +170,40 @@ class RingFinder(object):
   
     return conv,tvar
 
+  def _getConv(self,image,index,radius,s=0.01,w=0.02,shape=[50,50]):
+    '''
+      Return the convolution strength at a given point.
+    '''
+
+    # get the kernel
+    kern = self._getkernel(radius,s,w=w,shape=shape)
+    kern /= np.sum(kern)
+
+    # compute the convolution
+    density = sig.fftconvolve(image,kern,mode='same')
+
+    return density[index[0],index[1]]
+
+  def _getConvVariance(self,image,index,radius,s=0.01,w=0.02,shape=[50,50]):
+    '''
+      Return the  polar and variance at a given point.
+    '''
+
+    # get the kernel
+    kern = self._getkernel(radius,s,w=w,shape=shape)
+    kern /= np.sum(kern)
+
+    # get the polar window coordinates
+    Xdig = np.array(np.unravel_index(np.arange(np.prod(shape)),shape)).T*w - w*shape[0]/2
+    R = np.arctan2(Xdig[:,0],Xdig[:,1]) + np.pi
+    R = R.reshape(shape)
+
+    # compute the convolutions
+    norm_factor = sig.fftconvolve(image,kern,mode='same')
+    conv1 = sig.fftconvolve(image,R**2*kern,mode='same')/norm_factor
+    w = sig.fftconvolve(image,R*kern,mode='same')/norm_factor
+
+    return (conv1 - w**2)[index[0],index[1]]
 
 
   def _calcConv(self,images,rdf):
@@ -177,7 +212,7 @@ class RingFinder(object):
       strengths at the points and radii specified in the dataframe.
     '''
 
-    return rdf[['image','x','y','r']].apply(lambda x: self._getSignalAndVariance(images[int(x[0])],[int(x[1]),int(x[2])],x[3],s=self._sigma,w=self._screen._pixel_width,shape=self._window)[0],axis=1)
+    return rdf[['image','x','y','r']].apply(lambda x: self._getConv(images[int(x[0])],[int(x[1]),int(x[2])],x[3],s=self._sigma,w=self._screen._pixel_width,shape=self._window),axis=1)
 
 
 
@@ -187,13 +222,18 @@ class RingFinder(object):
       strengths at the points and radii specified in the dataframe.
     '''
 
-    return rdf[['image','x','y','r']].apply(lambda x: self._getSignalAndVariance(images[int(x[0])],[int(x[1]),int(x[2])],x[3],s=self._sigma,w=self._screen._pixel_width,shape=self._window)[1],axis=1)
+    return rdf[['image','x','y','r']].apply(lambda x: self._getConvVariance(images[int(x[0])],[int(x[1]),int(x[2])],x[3],s=self._sigma,w=self._screen._pixel_width,shape=self._window),axis=1)
 
 
   def _ihs(self,x,lam=1):
     '''Inverse hyperbolic sine'''
 
     return np.log(x/lam + np.sqrt((x/lam)**2+1))
+
+
+
+  # -------
+  # "public" methods
  
   def eval(self,images):
     '''Evaluate the model on a set of image.'''
