@@ -88,4 +88,29 @@ radius, plot each ring.
     circle = plt.Circle((ring[1],ring[0]),ring[2]/px_width,color='r',fill=False)
     ax.add_artist(circle)
 
- 
+
+#
+# plot score in in window along axis
+def plotScoreInWindow(data,axis,mplax):
+  '''
+    Given an array of scores, plot it for each element along a particular axis.
+    For example, suppose data is a 10x5x5 array and axis=0, this plots the 25 
+   elements over the 10 along axis 0.
+  ''' 
+
+
+  X = np.moveaxis(data,axis,0)
+  shape = X.shape
+  X = X.reshape((shape[0],np.prod(shape[1:])))
+  
+  shape = X.shape
+  l = np.arange(shape[0])
+  for i in range(shape[1]):
+    x = X[:,i]
+
+    # plot the curve
+    mplax.plot(l,x,color='#333333',ls=':',lw=0.5,alpha=0.5)
+
+  return mplax
+
+

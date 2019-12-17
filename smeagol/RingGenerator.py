@@ -14,6 +14,8 @@ import sys
 
 #from progress import ProgressBar
 
+
+
 class Screen(object):
   '''Discritization of the imaging layer, e.g. where the light hits.'''
 
@@ -552,3 +554,6 @@ class MultiVariedRingGenerator(RingGenerator):
 
     with open(outfile,'rb') as f:
       pkl.dump({'images':self.data_,'labels':self.labels_},f)
+
+
+

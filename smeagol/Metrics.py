@@ -35,6 +35,47 @@ def prepare_actuals(actual_labels,screen):
   return labels
 
 
+def mask_scores(labels,radii,screen):
+  '''
+    Return a mask, or index slices, to select scores that correspond to or not
+    to actual rings.  
+
+    Parameters
+    ----------
+
+    Returns
+    -------
+    A boolean array of nRadiaxscreen corresponding to acceptable predicted locations.
+  '''
+
+  mask = np.zeros((len(radii),screen.N_,screen.N_),dtype=bool)
+
+  N = len(labels)
+ 
+  # cycle over the labels and set the areas in the mask
+  for i in range(N):  
+    lab = labels[i]
+
+    # get the image plane slice for the label
+    s1 = slice(lab[0]-1,lab[0]+2,None)
+    s2 = slice(lab[1]-1,lab[1]+2,None)
+    
+    # get the radii dimension slice around the label
+    rmin = lab[2] - 0.1
+    rmax = lab[2] + 0.1
+    mindex = np.argwhere(radii >= rmin).flatten()[0]
+    maxdex = np.argwhere(radii <= rmax).flatten()[-1]
+    
+    s0 = slice(mindex,maxdex,None)
+
+    # update the mask area
+    mask[(s0,s1,s2)] = True
+
+
+  return mask
+
+
+
 def match_prediction(y_true,y_hat):
 
   N = len(y_true)
@@ -64,7 +105,8 @@ def match_prediction(y_true,y_hat):
     true_positives.append(true_pos)
     false_positives.append(false_pos)
 
-  return true_positives,false_positives
+  #return true_positives,false_positives
+  return tpi,fpi
      
 
 def binary_score(y_true,y_hat):
@@ -318,5 +360,18 @@ class Mathews(object):
   def getMathews(self):
     return (self.tp_*self.tn_ - self.fp_*self.fn_)/np.sqrt((self.tp_+self.fp_)*(self.tp_+self.fn_)*(self.tn_+self.fp_)*(self.tn_+self.fn_))
 
+
+
+
+#
+# calculate the intersection over union of two rings
+def IoU(index0,r0,index1,r1,screen):
+
+  # translate the indices to spatial coordinates
+  pos = screen.transform_index(np.array([index0,index1]))
+
+  # calculate the area of the individual rings
+
+  raise NotImplementedError
 
 

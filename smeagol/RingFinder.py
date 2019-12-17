@@ -231,6 +231,111 @@ class RingFinder(object):
     return np.log(x/lam + np.sqrt((x/lam)**2+1))
 
 
+  def _score(self,image):
+    '''
+      Score a single image.
+    '''
+
+    # prepare the kernels
+    kernels = [rk.kernel(r,self._sigma).digitize(self._window[0],self._screen._pixel_width) for r in self._radii]
+    kernels = [kr/np.sum(kr) for kr in kernels] 
+
+    # digitize the window centers
+    Xdig = np.array(np.unravel_index(np.arange(np.prod(self._window)),self._window)).T*self._screen._pixel_width - self._screen._pixel_width*self._window[0]/2
+    R = np.arctan2(Xdig[:,0],Xdig[:,1]) + np.pi
+    R = R.reshape(self._window)
+
+    zeta2 = np.zeros((len(self._radii)),*image.shape)
+    convs = np.zeros((len(self._radii)),*image.shape) 
+
+    for i,r in enumerate(self._radii):
+
+      # execute the convolution
+      convs[i,:,:] = sig.fftconvolve(image,kernels[i],mode='same')
+  
+      tmpconv = sig.fftconvolve(image,R**2*kernels[i],mode='same')/convs[i,:,:]
+      w = sig.fftconvolve(image,R*kernels[i],mode='same')/convs[i,:,:]
+
+      # calculate the theta variance
+      zeta2[i,:,:] = (tmpconv - w**2)
+
+    # prepare the features
+    X = np.zeros((image.size*len(self._radii),7))
+
+    # set the pixel index
+    X[:,6] = np.array([np.arange(image.size)]*len(self._radii)).flatten()
+
+    # set the radius
+    X[:,2] = np.array([[r]*image.size for r in self._radii]).flatten()
+
+    # set the convolution
+    X[:,0] = self._ihs(convs.flatten(),self._conv_lambda)
+
+    # set the zeta2
+    X[:,1] = self._ihs(zeta2.flatten(),self._tvar_lambda)
+
+    # compute interaction terms
+    X[:,3] = X[:,0]*X[:,1]
+    X[:,4] = X[:,0]*X[:,2]
+    X[:,5] = X[:,1]*X[:,2]
+
+    # score the model
+    preds = self._clf.predict_proba(X[:,:6])[:,1]
+    preds = np.log(preds/(1-preds))
+
+    # reshape and return
+    return preds.reshape((len(self._radii),*image.shape)) 
+
+
+  #
+  def _filter_image(self,image,size):
+    '''
+      Apply the maximum filter to the image with the given window size.
+
+      Parameters
+      ---------
+      image (numpy.array) - the input image, usually scores.
+      size (int or tuple) - the footprint/shape/window for the filter.
+
+      Returns
+      -------
+      the filtered image
+    '''
+
+    im = np.zeros(image.shape)
+    index = image == filters.maximum_filter(image,size)
+    im[index] = image[index]
+
+    return im
+
+
+  def _selectByFilter(self,scores,size=(2,2)):
+    '''
+      Apply _filter_image to each radius in the scan.
+    '''
+
+    fscores = np.zeros(scores.shape)
+    for i in range(scores.shape[0]):
+      fscores[i] = self._filter_image(scores[i],size)
+
+    return fscores
+
+
+  def _localize(self,scores):
+    '''
+      localize the rings.
+    '''
+
+    scores = self._selectByFilter(scores,size=(2,2))
+    scores = self._selectByFilter(scores,size=(10,10))
+    indx = scores == filters.maximum_filter(scores,(3,10,10))
+    z = -np.inf*np.ones(scores.shape)
+    z[indx] = scores[indx]
+    scores = z
+
+    return scores
+
+
 
   # -------
   # "public" methods
@@ -238,6 +343,18 @@ class RingFinder(object):
   def eval(self,images):
     '''Evaluate the model on a set of image.'''
 
+    N = images.shape[0]
+   
+    # iterate over the images 
+    for i in range(N):
+
+      # score the image
+      scores = self._score(images[i])
+
+      # localize the rings
+      scores = self._localize(scores)
+
+      #
 
 
   def train(self,images,labels):
@@ -274,17 +391,17 @@ class RingFinder(object):
     self._rdf = self._rdf.sample(frac=1).reset_index(drop=True) 
 
     # compute the covariance
-    self._rdf['conv'] = self._calcConv(images,self._rdf)
+    self._rdf['conv'] = self._calcConv(images,self._rdf,)
   
     # compute the variance in theta
     self._rdf['tvar'] = self._calcTvar(images,self._rdf)
 
     # transform the data
-    tvar_lambda = np.mean(self._rdf['tvar'])/(2*np.sqrt(3))
-    self._rdf['tvarT'] = self._ihs(self._rdf['tvar'],tvar_lambda)
+    self._tvar_lambda = np.mean(self._rdf['tvar'])/(2*np.sqrt(3))
+    self._rdf['tvarT'] = self._ihs(self._rdf['tvar'],self._tvar_lambda)
 
-    conv_lambda = np.mean(self._rdf['conv'])/(2*np.sqrt(3))
-    self._rdf['convT'] = self._ihs(self._rdf['conv'],conv_lambda)
+    self._conv_lambda = np.mean(self._rdf['conv'])/(2*np.sqrt(3))
+    self._rdf['convT'] = self._ihs(self._rdf['conv'],self._conv_lambda)
 
     # fit the data
     X = np.zeros((len(self._rdf),6))
