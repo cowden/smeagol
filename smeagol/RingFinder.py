@@ -14,7 +14,7 @@ import numpy as np
 import pandas as pd
 
 from scipy.sparse import lil_matrix
-from scipy.ndimage.filters import maximum_filter
+from scipy.ndimage import filters
 import scipy.signal as sig
 
 from sklearn.linear_model import LogisticRegression
@@ -245,8 +245,8 @@ class RingFinder(object):
     R = np.arctan2(Xdig[:,0],Xdig[:,1]) + np.pi
     R = R.reshape(self._window)
 
-    zeta2 = np.zeros((len(self._radii)),*image.shape)
-    convs = np.zeros((len(self._radii)),*image.shape) 
+    zeta2 = np.zeros((len(self._radii),*image.shape))
+    convs = np.zeros((len(self._radii),*image.shape))
 
     for i,r in enumerate(self._radii):
 

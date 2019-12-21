@@ -13,6 +13,8 @@ import pylab as plt
 
 import RingGenerator as rg
 
+from utils import imagetools
+
 
 #
 # A method to plot an array of images
@@ -114,3 +116,40 @@ def plotScoreInWindow(data,axis,mplax):
   return mplax
 
 
+
+#
+# plot an image and label the generated centers
+def plotGeneratedImage(image,labels,ax,screen):
+
+  l = ax.imshow(image)
+  plt.colorbar(l)
+
+  # label the generated rings with the corresponding indices
+  for i,label in enumerate(labels):
+    pos = np.squeeze(screen.transform_index(np.expand_dims(label[0],0)))
+    ax.text(pos[1],pos[0],'{:d}'.format(i))
+
+
+
+
+
+
+#
+# plot scores around a particular generated ring
+def plotGeneratedWindowScores(scores,label,screen,ax,shape=[75,75]):
+
+
+  index = np.squeeze(screen.transform_index(np.expand_dims(label,0))) 
+  plotScoreInWindow(scores[imagetools.selectWindowSlice(index,shape,screen)],0,ax)
+
+
+  data = scores[imagetools.selectWindowSlice(index,[3,3],screen)]
+
+  for i in range(3):
+    for j in range(3):
+      if i == 1 and j == 1:
+        continue
+      ax.plot(data[:,i,j],color='b',alpha=0.5)
+
+  ax.plot(scores[:,index[0],index[1]],color='r')
+    

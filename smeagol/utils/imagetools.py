@@ -1,6 +1,7 @@
 
 import numpy as np
 
+
 #
 # get a window from an image
 def getwindow(image,index,shape=[50,50]):
@@ -58,18 +59,6 @@ def selectWindowSlice(index,shape,screen):
 
   return tuple([np.s_[:],np.s_[s1[0]:s1[1]],np.s_[s2[0]:s2[1]]])
 
-
-#
-# plot an image and label the generated centers
-def plotGeneratedImage(image,labels,ax,screen):
-
-  l = ax.imshow(image)
-  plt.colorbar(l)
-
-  # label the generated rings with the corresponding indices
-  for i,label in enumerate(labels):
-    pos = np.squeeze(screen.transform_index(np.expand_dims(label[0],0)))
-    ax.text(pos[1],pos[0],'{:d}'.format(i))
 
   
 
