@@ -34,6 +34,7 @@ class RingFinder(object):
   '''
 
   def __init__(self,screen,Nr=10,span=[0.25,0.75],sigma=0.01,bk_sample=100,window=[50,50]
+    ,filter1=(2,2), filter2=(10,10), filter3=(3,10,10)
   ):
     '''Initialize the model with all necessary parameters.'''
 
@@ -48,7 +49,13 @@ class RingFinder(object):
     # list of radii
     self._deltaR = (span[1] - span[0])/(Nr-1)
     self._radii = list(np.arange(span[0],span[1]+0.5*self._deltaR,self._deltaR))
- 
+
+    self._filter1 = filter1
+    self._filter2 = filter2
+    self._filter3 = filter3
+
+    # remaining hypterparameters
+    # threshold
 
 
   def _randomlocation(self,data):
@@ -321,14 +328,14 @@ class RingFinder(object):
     return fscores
 
 
-  def _localize(self,scores):
+  def _localize(self,scores,f1,f2,f3):
     '''
       localize the rings.
     '''
 
-    scores = self._selectByFilter(scores,size=(2,2))
-    scores = self._selectByFilter(scores,size=(10,10))
-    indx = scores == filters.maximum_filter(scores,(3,10,10))
+    scores = self._selectByFilter(scores,size=f1)
+    scores = self._selectByFilter(scores,size=f2)
+    indx = scores == filters.maximum_filter(scores,f3)
     z = -np.inf*np.ones(scores.shape)
     z[indx] = scores[indx]
     scores = z
@@ -352,7 +359,7 @@ class RingFinder(object):
       scores = self._score(images[i])
 
       # localize the rings
-      scores = self._localize(scores)
+      scores = self._localize(scores,self._filter1,self._filter2,self._filter3)
 
       #
 

@@ -467,7 +467,7 @@ class MultiVariedRingGenerator(RingGenerator):
     self.pos_ = (0.,0.)
     self.sig_ = 3.
 
-    self.r_range_ = (0.25,0.75)
+    self.r_range_ = (0.35,0.75)
    
     for k,v in kwargs.items():
       if k == 'domain':
