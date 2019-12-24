@@ -66,7 +66,7 @@ def selectWindowSlice(index,shape,screen):
 #  return the predicted ring centers
 def getPredictedRingCenters(scores,screen,radii,threshold=0.):
 
-  cents = np.argwhere(scores > threshold)
+  cents = np.argwhere(scores > threshold).astype(int)
   rs = radii[cents[:,0]]
   cents = cents.astype(float)
   cents[:,:2] = cents[:,1:]

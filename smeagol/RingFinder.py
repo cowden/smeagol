@@ -23,6 +23,7 @@ from sklearn.linear_model import LogisticRegression
 import RingKernel as rk
 import RingGenerator as rg
 import Metrics as met
+import utils.imagetools as imtools
 
 
 ###################################################
@@ -33,8 +34,12 @@ class RingFinder(object):
     This class implements a regression to separate and identify rings.
   '''
 
-  def __init__(self,screen,Nr=10,span=[0.25,0.75],sigma=0.01,bk_sample=100,window=[50,50]
+  def __init__(self,screen
+    ,Nr=10,span=[0.25,0.75]
+    ,sigma=0.01,bk_sample=100
+    ,window=[50,50]
     ,filter1=(2,2), filter2=(10,10), filter3=(3,10,10)
+    ,threshold=0.1
   ):
     '''Initialize the model with all necessary parameters.'''
 
@@ -48,14 +53,15 @@ class RingFinder(object):
 
     # list of radii
     self._deltaR = (span[1] - span[0])/(Nr-1)
-    self._radii = list(np.arange(span[0],span[1]+0.5*self._deltaR,self._deltaR))
+    self._radii = np.arange(span[0],span[1]+0.5*self._deltaR,self._deltaR)
 
     self._filter1 = filter1
     self._filter2 = filter2
     self._filter3 = filter3
 
-    # remaining hypterparameters
-    # threshold
+    # selection threshold
+    self._threshold = threshold
+
 
 
   def _randomlocation(self,data):
@@ -289,6 +295,9 @@ class RingFinder(object):
     # score the model
     preds = self._clf.predict_proba(X[:,:6])[:,1]
     preds = np.log(preds/(1-preds))
+  
+    # saturate infinite values
+    preds[np.argwhere(preds == np.inf)] = 700.
 
     # reshape and return
     return preds.reshape((len(self._radii),*image.shape)) 
@@ -351,6 +360,8 @@ class RingFinder(object):
     '''Evaluate the model on a set of image.'''
 
     N = images.shape[0]
+
+    selected_rings = []
    
     # iterate over the images 
     for i in range(N):
@@ -361,7 +372,11 @@ class RingFinder(object):
       # localize the rings
       scores = self._localize(scores,self._filter1,self._filter2,self._filter3)
 
-      #
+      # select the centers
+      cents = imtools.getPredictedRingCenters(scores,self._screen,self._radii,self._threshold)
+      selected_rings.append(cents)
+
+    return selected_rings
 
 
   def train(self,images,labels):
