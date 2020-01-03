@@ -413,7 +413,7 @@ class RingFinder(object):
     self._rdf = self._rdf.sample(frac=1).reset_index(drop=True) 
 
     # compute the covariance
-    self._rdf['conv'] = self._calcConv(images,self._rdf,)
+    self._rdf['conv'] = self._calcConv(images,self._rdf)
   
     # compute the variance in theta
     self._rdf['tvar'] = self._calcTvar(images,self._rdf)
