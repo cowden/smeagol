@@ -379,9 +379,7 @@ class RingFinder(object):
     return selected_rings
 
 
-  def train(self,images,labels):
-    '''
-    '''
+  def _prepImages(self,images,labels):
 
     N = images.shape[0]
 
@@ -393,7 +391,7 @@ class RingFinder(object):
     rand = [[r[0],r[1][0],r[1][1],np.random.uniform(*self._span)] for r in rand]
 
     # prepare a ring dataframe of actuals and random windows/radii 
-    self._rdf = pd.concat(
+    df = pd.concat(
       [pd.DataFrame(
         {'is_ring':[1]*len(actuals[i])
         ,'image':[i]*len(actuals[i])
@@ -410,31 +408,51 @@ class RingFinder(object):
         })]
     )
 
-    self._rdf = self._rdf.sample(frac=1).reset_index(drop=True) 
+    df = df.sample(frac=1).reset_index(drop=True) 
 
     # compute the covariance
-    self._rdf['conv'] = self._calcConv(images,self._rdf)
+    df['conv'] = self._calcConv(images,df)
   
     # compute the variance in theta
-    self._rdf['tvar'] = self._calcTvar(images,self._rdf)
+    df['tvar'] = self._calcTvar(images,df)
+
+    return df
+
+
+  def _transformVars(self,df):
+    df['tvarT'] = self._ihs(df['tvar'],self._tvar_lambda)
+    df['convT'] = self._ihs(df['conv'],self._conv_lambda)
+
+
+  def _prepRawTrainData(self,df):
+
+    X = np.zeros((len(df),6))
+    X[:,0] = df['convT']
+    X[:,1] = df['tvarT']
+    X[:,2] = df['r']
+    X[:,3] = df['convT']*df['tvarT']
+    X[:,4] = df['convT']*df['r']
+    X[:,5] = df['tvarT']*df['r']
+
+    y = df['is_ring']
+
+    return X,y
+
+
+  def train(self,images,labels):
+    '''
+    '''
+
+
+    self._rdf = self._prepImages(images,labels)
 
     # transform the data
     self._tvar_lambda = np.mean(self._rdf['tvar'])/(2*np.sqrt(3))
-    self._rdf['tvarT'] = self._ihs(self._rdf['tvar'],self._tvar_lambda)
-
     self._conv_lambda = np.mean(self._rdf['conv'])/(2*np.sqrt(3))
-    self._rdf['convT'] = self._ihs(self._rdf['conv'],self._conv_lambda)
+    self._transformVars(self._rdf)
 
     # fit the data
-    X = np.zeros((len(self._rdf),6))
-    X[:,0] = self._rdf['convT']
-    X[:,1] = self._rdf['tvarT']
-    X[:,2] = self._rdf['r']
-    X[:,3] = self._rdf['convT']*self._rdf['tvarT']
-    X[:,4] = self._rdf['convT']*self._rdf['r']
-    X[:,5] = self._rdf['tvarT']*self._rdf['r']
-
-    y = self._rdf['is_ring']
+    X,y = self._prepRawTrainData(self._rdf)
 
     self._clf = LogisticRegression(solver='lbfgs',penalty='none')
     self._clf.fit(X,y)
@@ -453,3 +471,11 @@ class RingFinder(object):
     # compute the likelihood
 
     # 
+
+
+  def residuals(self,axis,X,y):
+    '''
+    '''
+
+    p = self._clf.predict_proba(X)[:,1]
+    return self._clf.coef_[0,axis]*X[:,axis] + (y-p)/(p*(1-p))
