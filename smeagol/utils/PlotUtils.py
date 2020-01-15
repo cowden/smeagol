@@ -13,6 +13,8 @@ import pylab as plt
 
 import RingGenerator as rg
 
+from utils import imagetools
+
 
 #
 # A method to plot an array of images
@@ -88,4 +90,66 @@ radius, plot each ring.
     circle = plt.Circle((ring[1],ring[0]),ring[2]/px_width,color='r',fill=False)
     ax.add_artist(circle)
 
- 
+
+#
+# plot score in in window along axis
+def plotScoreInWindow(data,axis,mplax):
+  '''
+    Given an array of scores, plot it for each element along a particular axis.
+    For example, suppose data is a 10x5x5 array and axis=0, this plots the 25 
+   elements over the 10 along axis 0.
+  ''' 
+
+
+  X = np.moveaxis(data,axis,0)
+  shape = X.shape
+  X = X.reshape((shape[0],np.prod(shape[1:])))
+  
+  shape = X.shape
+  l = np.arange(shape[0])
+  for i in range(shape[1]):
+    x = X[:,i]
+
+    # plot the curve
+    mplax.plot(l,x,color='#333333',ls=':',lw=0.5,alpha=0.5)
+
+  return mplax
+
+
+
+#
+# plot an image and label the generated centers
+def plotGeneratedImage(image,labels,ax,screen):
+
+  l = ax.imshow(image)
+  plt.colorbar(l)
+
+  # label the generated rings with the corresponding indices
+  for i,label in enumerate(labels):
+    pos = np.squeeze(screen.transform_index(np.expand_dims(label[0],0)))
+    ax.text(pos[1],pos[0],'{:d}'.format(i))
+
+
+
+
+
+
+#
+# plot scores around a particular generated ring
+def plotGeneratedWindowScores(scores,label,screen,ax,shape=[75,75]):
+
+
+  index = np.squeeze(screen.transform_index(np.expand_dims(label,0))) 
+  plotScoreInWindow(scores[imagetools.selectWindowSlice(index,shape,screen)],0,ax)
+
+
+  data = scores[imagetools.selectWindowSlice(index,[3,3],screen)]
+
+  for i in range(3):
+    for j in range(3):
+      if i == 1 and j == 1:
+        continue
+      ax.plot(data[:,i,j],color='b',alpha=0.5)
+
+  ax.plot(scores[:,index[0],index[1]],color='r')
+    

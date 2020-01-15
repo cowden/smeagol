@@ -14,6 +14,8 @@ import sys
 
 #from progress import ProgressBar
 
+
+
 class Screen(object):
   '''Discritization of the imaging layer, e.g. where the light hits.'''
 
@@ -24,6 +26,7 @@ class Screen(object):
     self.width_ = self.domain_[0,1] - self.domain_[0,0]
     self.height_ = self.domain_[1,1] - self.domain_[1,0]
     self.N_ = N
+    self._pixel_width = self.width_/self.N_
 
     # internal data
     self.data_ = np.zeros((N,N))
@@ -464,7 +467,7 @@ class MultiVariedRingGenerator(RingGenerator):
     self.pos_ = (0.,0.)
     self.sig_ = 3.
 
-    self.r_range_ = (0.25,0.75)
+    self.r_range_ = (0.35,0.75)
    
     for k,v in kwargs.items():
       if k == 'domain':
@@ -551,3 +554,6 @@ class MultiVariedRingGenerator(RingGenerator):
 
     with open(outfile,'rb') as f:
       pkl.dump({'images':self.data_,'labels':self.labels_},f)
+
+
+

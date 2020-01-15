@@ -111,6 +111,8 @@ class KernelConvolver(object):
     self.pixels_ = 500
 
 
+    self._conv_mode = 'same'
+
     # parse kwargs
     for k,v in kwargs.items():
       if k == 'kernel':
@@ -139,21 +141,28 @@ class KernelConvolver(object):
     if self.screen_ is None:
       self.screen_ = rg.Screen(self.domain_,self.pixels_)
 
+    # create a polar angle map of the image
+    Xdig = np.array(np.unravel_index(np.arange(self.krn_im_.size),self.krn_im_.shape))*self.krn_pixel_width_ - np.diff(self.domain_[0])[0]/2
+    self._R = np.arctan2(X[:,0],X[:,1]) + np.pi
+
     self.convs_ = []
     
 
   def convolve(self,image):
     '''Perform the convolution.'''
-    return sig.fftconvolve(image,self.krn_im_,mode='same')
+    return sig.fftconvolve(image,self.krn_im_,mode=self._conv_mode)
 
-  def convolution_variance(self,image):
+  def convolution_polar_variance(self,image):
     '''Compute the variance of data in the kernel window.'''
 
-    # transform the x-space
-
+  
     # compute convolutions
+    norm_factor = self.convolve(image)
+    conv1 = sig.fftconvolve(image,R**2*self.krn_im_,mode=self._conv_mode)/norm_factor
+    w = sig.fftconvolve(image,R*self.kern_im_,mode=self._conv_mode)/norm_factor
 
-    # compute variance
+    return conv1 - w**2, norm_factor
+
 
   def max_filter(self,image):
     '''Perform the maximum filter.'''
