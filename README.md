@@ -24,3 +24,6 @@ image with the rings identified by `smeagol` highlighted in red.
 ![example rings](doc/img/example_30_rings.png)
 
 
+# License
+This software is released under the [MIT](LICENSE.txt) license.
+
